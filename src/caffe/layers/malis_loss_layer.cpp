@@ -206,7 +206,7 @@ void MalisLossLayer<Dtype>::Malis(const Dtype* conn_data,
           if (pos && (it1->first == it2->first)) {
             // +ve example pairs
             dl = (Dtype(1.0) - conn_data[minEdge]);
-            loss += dl * nPair;
+            loss += dl*dl * nPair;
             // Use hinge loss
             dloss_data[minEdge] -= dl * nPair;
             if (conn_data[minEdge] <= Dtype(0.5)) {  // an error
@@ -215,8 +215,8 @@ void MalisLossLayer<Dtype>::Malis(const Dtype* conn_data,
 
           } else if ((!pos) && (it1->first != it2->first)) {
             // -ve example pairs
-            dl = (conn_data[minEdge]);
-            loss += dl * nPair;
+            dl = (-conn_data[minEdge]);
+            loss += dl*dl * nPair;
             // Use hinge loss
             dloss_data[minEdge] += dl * nPair;
             if (conn_data[minEdge] > Dtype(0.5)) {  // an error
