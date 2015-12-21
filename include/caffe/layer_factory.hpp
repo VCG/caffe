@@ -44,6 +44,8 @@
 #include <vector>
 
 #include "caffe/common.hpp"
+#include "caffe/device.hpp"
+#include "caffe/layer.hpp"
 #include "caffe/proto/caffe.pb.h"
 
 namespace caffe {

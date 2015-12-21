@@ -6,7 +6,12 @@
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
 #include "caffe/filler.hpp"
-#include "caffe/vision_layers.hpp"
+#include "caffe/layers/lrn_layer.hpp"
+
+#ifdef USE_CUDNN
+#include "caffe/layers/cudnn_lcn_layer.hpp"
+#include "caffe/layers/cudnn_lrn_layer.hpp"
+#endif
 
 #include "caffe/test/test_caffe_main.hpp"
 #include "caffe/test/test_gradient_check_util.hpp"
@@ -26,7 +31,7 @@ class LRNLayerTest : public MultiDeviceTest<TypeParam> {
         blob_bottom_(new Blob<Dtype>()),
         blob_top_(new Blob<Dtype>()) {}
   virtual void SetUp() {
-    Caffe::set_random_seed(1701);
+    Caffe::set_random_seed(1701, Caffe::GetDefaultDevice());
     blob_bottom_->Reshape(2, 7, 3, 3);
     // fill the values
     FillerParameter filler_param;

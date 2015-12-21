@@ -5,7 +5,11 @@
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
 #include "caffe/filler.hpp"
-#include "caffe/vision_layers.hpp"
+#include "caffe/layers/pooling_layer.hpp"
+
+#ifdef USE_CUDNN
+#include "caffe/layers/cudnn_pooling_layer.hpp"
+#endif
 
 #include "caffe/test/test_caffe_main.hpp"
 #include "caffe/test/test_gradient_check_util.hpp"
@@ -22,7 +26,7 @@ class PoolingLayerTest : public MultiDeviceTest<TypeParam> {
         blob_top_(new Blob<Dtype>()),
         blob_top_mask_(new Blob<Dtype>()) {}
   virtual void SetUp() {
-    Caffe::set_random_seed(1701);
+    Caffe::set_random_seed(1701, Caffe::GetDefaultDevice());
     blob_bottom_->Reshape(2, 3, 6, 5);
     // fill the values
     FillerParameter filler_param;

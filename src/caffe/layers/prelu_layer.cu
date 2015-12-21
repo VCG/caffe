@@ -1,7 +1,8 @@
 #include <algorithm>
 #include <vector>
 
-#include "caffe/neuron_layers.hpp"
+#include "caffe/layers/neuron_layer.hpp"
+#include "caffe/layers/prelu_layer.hpp"
 
 #ifdef USE_GREENTEA
 #include "caffe/greentea/greentea.hpp"
@@ -80,8 +81,7 @@ void PReLULayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 #ifdef USE_GREENTEA
     viennacl::ocl::context &ctx = viennacl::ocl::get_context(
         this->device_->id());
-    viennacl::ocl::program &program = Caffe::Get().GetDeviceProgram(
-        this->device_->id());
+    viennacl::ocl::program &program = this->device_->program();
 
     if (top[0] == bottom[0]) {
       greentea_copy<Dtype>(count, (cl_mem) bottom_data, 0,
@@ -162,8 +162,7 @@ void PReLULayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 #ifdef USE_GREENTEA
     viennacl::ocl::context &ctx = viennacl::ocl::get_context(
         this->device_->id());
-    viennacl::ocl::program &program = Caffe::Get().GetDeviceProgram(
-        this->device_->id());
+    viennacl::ocl::program &program = this->device_->program();
 
     // Propagate to param
     // Since to write bottom diff will affect top diff if top and bottom blobs

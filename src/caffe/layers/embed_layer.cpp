@@ -1,7 +1,7 @@
 #include <vector>
 
-#include "caffe/common_layers.hpp"
 #include "caffe/filler.hpp"
+#include "caffe/layers/embed_layer.hpp"
 #include "caffe/util/math_functions.hpp"
 
 namespace caffe {
@@ -28,7 +28,7 @@ void EmbedLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     vector<int_tp> weight_shape(2);
     weight_shape[0] = K_;
     weight_shape[1] = N_;
-    this->blobs_[0].reset(new Blob<Dtype>(weight_shape));
+    this->blobs_[0].reset(new Blob<Dtype>(weight_shape, this->device_));
     // fill the weights
     shared_ptr<Filler<Dtype> > weight_filler(GetFiller<Dtype>(
         this->layer_param_.embed_param().weight_filler()));
@@ -36,7 +36,7 @@ void EmbedLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     // If necessary, initialize and fill the bias term
     if (bias_term_) {
       vector<int_tp> bias_shape(1, N_);
-      this->blobs_[1].reset(new Blob<Dtype>(bias_shape));
+      this->blobs_[1].reset(new Blob<Dtype>(bias_shape, this->device_));
       shared_ptr<Filler<Dtype> > bias_filler(GetFiller<Dtype>(
           this->layer_param_.embed_param().bias_filler()));
       bias_filler->Fill(this->blobs_[1].get());

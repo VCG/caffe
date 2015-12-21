@@ -48,6 +48,10 @@ class Solver {
   void InitTrainNet();
   void InitTestNets();
 
+  // Allows to change the solver parameters during training
+  void UpdateSolverParams(const SolverParameter& param);
+  SolverParameter GetSolverParams();
+
   // Client of the Solver optionally may call this in order to set the function
   // that the solver uses to see what action it should take (e.g. snapshot or
   // exit training early).
@@ -110,6 +114,11 @@ class Solver {
     return "";
   }
 
+  inline device *get_device() {
+    return device_;
+  }
+
+
  protected:
   // Make and apply the update value for the current iteration.
   virtual void ApplyUpdate() = 0;
@@ -128,7 +137,7 @@ class Solver {
   int_tp current_step_;
   shared_ptr<Net<Dtype> > net_;
   vector<shared_ptr<Net<Dtype> > > test_nets_;
-  device *device_;
+  device* device_;
   vector<Callback*> callbacks_;
 
   // The root solver that holds root nets (actually containing shared layers)

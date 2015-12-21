@@ -5,7 +5,12 @@
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
 #include "caffe/filler.hpp"
-#include "caffe/vision_layers.hpp"
+#include "caffe/layers/concat_layer.hpp"
+#include "caffe/layers/flatten_layer.hpp"
+#include "caffe/layers/pooling_layer.hpp"
+#include "caffe/layers/split_layer.hpp"
+#include "caffe/layers/spp_layer.hpp"
+
 
 #include "caffe/test/test_caffe_main.hpp"
 #include "caffe/test/test_gradient_check_util.hpp"
@@ -23,7 +28,7 @@ class SPPLayerTest : public MultiDeviceTest<TypeParam> {
         blob_bottom_3_(new Blob<Dtype>()),
         blob_top_(new Blob<Dtype>()) {}
   virtual void SetUp() {
-    Caffe::set_random_seed(1701);
+    Caffe::set_random_seed(1701, Caffe::GetDefaultDevice());
     blob_bottom_->Reshape(2, 3, 9, 8);
     blob_bottom_2_->Reshape(4, 3, 1024, 765);
     blob_bottom_3_->Reshape(10, 3, 7, 7);

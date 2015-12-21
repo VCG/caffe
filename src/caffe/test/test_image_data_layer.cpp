@@ -7,8 +7,8 @@
 
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
-#include "caffe/data_layers.hpp"
 #include "caffe/filler.hpp"
+#include "caffe/layers/image_data_layer.hpp"
 #include "caffe/proto/caffe.pb.h"
 #include "caffe/util/io.hpp"
 
@@ -28,7 +28,7 @@ class ImageDataLayerTest : public MultiDeviceTest<TypeParam> {
   virtual void SetUp() {
     blob_top_vec_.push_back(blob_top_data_);
     blob_top_vec_.push_back(blob_top_label_);
-    Caffe::set_random_seed(seed_);
+    Caffe::set_random_seed(seed_, Caffe::GetDefaultDevice());
     // Create test input file.
     MakeTempFilename(&filename_);
     std::ofstream outfile(filename_.c_str(), std::ofstream::out);

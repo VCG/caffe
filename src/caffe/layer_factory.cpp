@@ -7,11 +7,28 @@
 
 #include "caffe/layer.hpp"
 #include "caffe/layer_factory.hpp"
+#include "caffe/layers/conv_layer.hpp"
+#include "caffe/layers/lrn_layer.hpp"
+#include "caffe/layers/pooling_layer.hpp"
+#include "caffe/layers/relu_layer.hpp"
+#include "caffe/layers/sigmoid_layer.hpp"
+#include "caffe/layers/softmax_layer.hpp"
+#include "caffe/layers/tanh_layer.hpp"
 #include "caffe/proto/caffe.pb.h"
-#include "caffe/vision_layers.hpp"
+
+#ifdef USE_CUDNN
+#include "caffe/layers/cudnn_conv_layer.hpp"
+#include "caffe/layers/cudnn_lcn_layer.hpp"
+#include "caffe/layers/cudnn_lrn_layer.hpp"
+#include "caffe/layers/cudnn_pooling_layer.hpp"
+#include "caffe/layers/cudnn_relu_layer.hpp"
+#include "caffe/layers/cudnn_sigmoid_layer.hpp"
+#include "caffe/layers/cudnn_softmax_layer.hpp"
+#include "caffe/layers/cudnn_tanh_layer.hpp"
+#endif
 
 #ifdef WITH_PYTHON_LAYER
-#include "caffe/python_layer.hpp"
+#include "caffe/layers/python_layer.hpp"
 #endif
 
 namespace caffe {
@@ -27,7 +44,7 @@ shared_ptr<Layer<Dtype> > GetConvolutionLayer(const LayerParameter& param) {
 #endif
   }
   if (engine == ConvolutionParameter_Engine_CAFFE
-      || Caffe::GetDefaultDevice()->backend() == BACKEND_OpenCL) {
+      || Caffe::GetDevice(param.device(), true)->backend() == BACKEND_OpenCL) {
     return shared_ptr<Layer<Dtype> >(new ConvolutionLayer<Dtype>(param));
 #ifdef USE_CUDNN
   } else if (engine == ConvolutionParameter_Engine_CUDNN) {
@@ -51,7 +68,7 @@ shared_ptr<Layer<Dtype> > GetPoolingLayer(const LayerParameter& param) {
 #endif
   }
   if (engine == PoolingParameter_Engine_CAFFE
-      || Caffe::GetDefaultDevice()->backend() == BACKEND_OpenCL) {
+      || Caffe::GetDevice(param.device(), true)->backend() == BACKEND_OpenCL) {
     return shared_ptr<Layer<Dtype> >(new PoolingLayer<Dtype>(param));
 #ifdef USE_CUDNN
   } else if (engine == PoolingParameter_Engine_CUDNN) {
@@ -117,7 +134,7 @@ shared_ptr<Layer<Dtype> > GetReLULayer(const LayerParameter& param) {
 #endif
   }
   if (engine == ReLUParameter_Engine_CAFFE
-      || Caffe::GetDefaultDevice()->backend() == BACKEND_OpenCL) {
+      || Caffe::GetDevice(param.device(), true)->backend() == BACKEND_OpenCL) {
     return shared_ptr<Layer<Dtype> >(new ReLULayer<Dtype>(param));
 #ifdef USE_CUDNN
   } else if (engine == ReLUParameter_Engine_CUDNN) {
@@ -141,7 +158,7 @@ shared_ptr<Layer<Dtype> > GetSigmoidLayer(const LayerParameter& param) {
 #endif
   }
   if (engine == SigmoidParameter_Engine_CAFFE
-      || Caffe::GetDefaultDevice()->backend() == BACKEND_OpenCL) {
+      || Caffe::GetDevice(param.device(), true)->backend() == BACKEND_OpenCL) {
     return shared_ptr<Layer<Dtype> >(new SigmoidLayer<Dtype>(param));
 #ifdef USE_CUDNN
   } else if (engine == SigmoidParameter_Engine_CUDNN) {
@@ -165,7 +182,7 @@ shared_ptr<Layer<Dtype> > GetSoftmaxLayer(const LayerParameter& param) {
 #endif
   }
   if (engine == SoftmaxParameter_Engine_CAFFE
-      || Caffe::GetDefaultDevice()->backend() == BACKEND_OpenCL) {
+      || Caffe::GetDevice(param.device(), true)->backend() == BACKEND_OpenCL) {
     return shared_ptr<Layer<Dtype> >(new SoftmaxLayer<Dtype>(param));
 #ifdef USE_CUDNN
   } else if (engine == SoftmaxParameter_Engine_CUDNN) {
@@ -189,7 +206,7 @@ shared_ptr<Layer<Dtype> > GetTanHLayer(const LayerParameter& param) {
 #endif
   }
   if (engine == TanHParameter_Engine_CAFFE
-      || Caffe::GetDefaultDevice()->backend() == BACKEND_OpenCL) {
+      || Caffe::GetDevice(param.device(), true)->backend() == BACKEND_OpenCL) {
     return shared_ptr<Layer<Dtype> >(new TanHLayer<Dtype>(param));
 #ifdef USE_CUDNN
   } else if (engine == TanHParameter_Engine_CUDNN) {

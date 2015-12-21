@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <vector>
 
-#include "caffe/loss_layers.hpp"
+#include "caffe/layers/contrastive_loss_layer.hpp"
 #include "caffe/util/math_functions.hpp"
 
 #ifdef USE_GREENTEA
@@ -133,8 +133,7 @@ void ContrastiveLossLayer<Dtype>::Backward_gpu(
 #ifdef USE_GREENTEA
         viennacl::ocl::context &ctx = viennacl::ocl::get_context(
             this->device_->id());
-        viennacl::ocl::program &program = Caffe::Get().GetDeviceProgram(
-            this->device_->id());
+        viennacl::ocl::program &program = this->device_->program();
 
         viennacl::ocl::kernel &oclk_cll = program.get_kernel(
             CL_KERNEL_SELECT("cll_backward"));

@@ -1,8 +1,7 @@
 #include <vector>
 
-#include "caffe/common_layers.hpp"
 #include "caffe/filler.hpp"
-#include "caffe/layer.hpp"
+#include "caffe/layers/embed_layer.hpp"
 #ifdef USE_CUDA
 #include "caffe/util/gpu_util.cuh"
 #endif  // USE_CUDA
@@ -67,8 +66,7 @@ void EmbedLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 #ifdef USE_GREENTEA
       viennacl::ocl::context &ctx = viennacl::ocl::get_context(
           this->device_->id());
-      viennacl::ocl::program &program = Caffe::Get().GetDeviceProgram(
-          this->device_->id());
+      viennacl::ocl::program &program = this->device_->program();
 
       viennacl::ocl::kernel &oclk_embed = program.get_kernel(
           CL_KERNEL_SELECT("embed_forward"));
@@ -109,8 +107,7 @@ void EmbedLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 #ifdef USE_GREENTEA
       viennacl::ocl::context &ctx = viennacl::ocl::get_context(
           this->device_->id());
-      viennacl::ocl::program &program = Caffe::Get().GetDeviceProgram(
-          this->device_->id());
+      viennacl::ocl::program &program = this->device_->program();
 
       viennacl::ocl::kernel &oclk_embed = program.get_kernel(
           CL_KERNEL_SELECT("embed_backward"));

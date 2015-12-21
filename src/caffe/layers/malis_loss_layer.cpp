@@ -17,8 +17,9 @@
 
 #include "caffe/layer.hpp"
 #include "caffe/layer_factory.hpp"
+#include "caffe/layers/malis_loss_layer.hpp"
 #include "caffe/util/math_functions.hpp"
-#include "caffe/vision_layers.hpp"
+
 
 namespace caffe {
 
@@ -66,13 +67,14 @@ void MalisLossLayer<Dtype>::Malis(const Dtype* conn_data,
   prodDims[conn_num_dims - 2] = 1;
   for (int64_t i = 1; i < conn_num_dims - 1; ++i) {
     prodDims[conn_num_dims - 2 - i] = prodDims[conn_num_dims - 1 - i]
-                                               * conn_dims[i];
-    // std::cout << conn_num_dims - 2 - i << " prodnhood_dims[1]Dims: "
-    // << prodDims[conn_num_dims - 2 - i] << std::endl;
+                                      * conn_dims[conn_num_dims - i];
+    // std::cout << conn_num_dims - 2 - i << " dims: "
+    //   << prodDims[conn_num_dims - 2 - i] << std::endl;
   }
 
   /* convert n-d offset vectors into linear array offset scalars */
   // nHood is a vector of size #edges
+
   std::vector<int32_t> nHood(nhood_dims[0]);
   for (int64_t i = 0; i < nhood_dims[0]; ++i) {
     nHood[i] = 0;
@@ -255,6 +257,10 @@ void MalisLossLayer<Dtype>::Malis(const Dtype* conn_data,
   } else {
     loss = 0;
   }
+
+  // std::cout << "nPairIncorrect: " << nPairIncorrect << std::endl;
+  // std::cout << "nPairNorm: " << nPairNorm << std::endl;
+
   *loss_out = loss;
   classerr = static_cast<double>(nPairIncorrect)
       / static_cast<double>(nPairNorm);
@@ -273,8 +279,8 @@ void MalisLossLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   // Expected inputs:
   // Required (bottom 0 to 2):
   // Bottom 0: Predicted affinity, shaped     (batch size, #edges, (Z), (Y), X)
-  // Bottom 1: Segmented ground truth, shaped (batch size, 1,      (Z), (Y), X)
-  // Bottom 2: Ground truth affinity, shaped  (batch size, #edges, (Z), (Y), X)
+  // Bottom 1: Ground truth affinity, shaped  (batch size, #edges, (Z), (Y), X)
+  // Bottom 2: Segmented ground truth, shaped (batch size, 1,      (Z), (Y), X)
 
   // Optional (bottom 3):
   // Bottom 3: Edge connectivity, size #edges * 3, shaped (Z,Y,X);(Z,Y,X);...
@@ -347,9 +353,9 @@ void MalisLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     // 2 edges:   +Y, +X      (0,1,0); (0,0,1)
     // 3 edges:   +Z, +Y, +X  (1,0,0); (0,1,0); (0,0,1)
     for (int_tp i = 3 - nedges_; i < 3; ++i) {
-      nhood_data_.push_back((i + 0) % 3 == 0 ? 1 : 0);
-      nhood_data_.push_back((i + 1) % 3 == 0 ? 1 : 0);
+      nhood_data_.push_back((i + 3) % 3 == 0 ? 1 : 0);
       nhood_data_.push_back((i + 2) % 3 == 0 ? 1 : 0);
+      nhood_data_.push_back((i + 1) % 3 == 0 ? 1 : 0);
     }
   }
 
@@ -393,6 +399,7 @@ void MalisLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
           &classerr_out, &rand_index_out);
 
     loss += loss_out;
+    // std::cout << "NEG: " << loss_out << std::endl;
 
     Malis(&affinity_data_pos[batch_offset * batch], conn_num_dims_,
           &conn_dims_[0], &nhood_data_[0], &nhood_dims_[0],
@@ -401,6 +408,7 @@ void MalisLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
           &classerr_out, &rand_index_out);
 
     loss += loss_out;
+    // std::cout << "POS: " << loss_out << std::endl;
   }
 
   // Normalized loss over batch size

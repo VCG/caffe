@@ -6,9 +6,26 @@
 
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
-#include "caffe/common_layers.hpp"
 #include "caffe/filler.hpp"
-#include "caffe/neuron_layers.hpp"
+
+#include "caffe/layers/absval_layer.hpp"
+#include "caffe/layers/bnll_layer.hpp"
+#include "caffe/layers/dropout_layer.hpp"
+#include "caffe/layers/exp_layer.hpp"
+#include "caffe/layers/inner_product_layer.hpp"
+#include "caffe/layers/log_layer.hpp"
+#include "caffe/layers/power_layer.hpp"
+#include "caffe/layers/prelu_layer.hpp"
+#include "caffe/layers/relu_layer.hpp"
+#include "caffe/layers/sigmoid_layer.hpp"
+#include "caffe/layers/tanh_layer.hpp"
+#include "caffe/layers/threshold_layer.hpp"
+
+#ifdef USE_CUDNN
+#include "caffe/layers/cudnn_relu_layer.hpp"
+#include "caffe/layers/cudnn_sigmoid_layer.hpp"
+#include "caffe/layers/cudnn_tanh_layer.hpp"
+#endif
 
 #include "caffe/test/test_caffe_main.hpp"
 #include "caffe/test/test_gradient_check_util.hpp"
@@ -23,7 +40,7 @@ class NeuronLayerTest : public MultiDeviceTest<TypeParam> {
   NeuronLayerTest()
       : blob_bottom_(new Blob<Dtype>(2, 3, 4, 5)),
         blob_top_(new Blob<Dtype>()) {
-    Caffe::set_random_seed(1701);
+    Caffe::set_random_seed(1701, Caffe::GetDefaultDevice());
     // fill the values
     FillerParameter filler_param;
     GaussianFiller<Dtype> filler(filler_param);

@@ -1,8 +1,8 @@
 #include <vector>
 
 #include "caffe/layer.hpp"
+#include "caffe/layers/mergecrop_layer.hpp"
 #include "caffe/util/math_functions.hpp"
-#include "caffe/vision_layers.hpp"
 
 #ifdef USE_GREENTEA
 #include "caffe/greentea/greentea.hpp"
@@ -141,8 +141,7 @@ void MergeCropLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 #ifdef USE_GREENTEA
     viennacl::ocl::context &ctx = viennacl::ocl::get_context(
         this->device_->id());
-    viennacl::ocl::program &program = Caffe::Get().GetDeviceProgram(
-        this->device_->id());
+    viennacl::ocl::program &program = this->device_->program();
 
     viennacl::ocl::kernel &oclk_copy_forward = program.get_kernel(
         CL_KERNEL_SELECT("merge_copy_forward"));
@@ -194,8 +193,7 @@ void MergeCropLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 #ifdef USE_GREENTEA
     viennacl::ocl::context &ctx = viennacl::ocl::get_context(
         this->device_->id());
-    viennacl::ocl::program &program = Caffe::Get().GetDeviceProgram(
-        this->device_->id());
+    viennacl::ocl::program &program = this->device_->program();
 
     viennacl::ocl::kernel &oclk_copy_backward = program.get_kernel(
         CL_KERNEL_SELECT("merge_copy_backward"));

@@ -4,8 +4,8 @@
 
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
-#include "caffe/common_layers.hpp"
 #include "caffe/filler.hpp"
+#include "caffe/layers/reduction_layer.hpp"
 
 #include "caffe/test/test_caffe_main.hpp"
 #include "caffe/test/test_gradient_check_util.hpp"
@@ -21,7 +21,7 @@ class ReductionLayerTest : public MultiDeviceTest<TypeParam> {
       : blob_bottom_(new Blob<Dtype>(2, 3, 4, 5)),
         blob_top_(new Blob<Dtype>()) {
     // fill the values
-    Caffe::set_random_seed(1702);
+    Caffe::set_random_seed(1702, Caffe::GetDefaultDevice());
     FillerParameter filler_param;
     UniformFiller<Dtype> filler(filler_param);
     filler.Fill(this->blob_bottom_);

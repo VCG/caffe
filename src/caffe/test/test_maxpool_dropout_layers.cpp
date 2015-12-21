@@ -5,7 +5,8 @@
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
 #include "caffe/filler.hpp"
-#include "caffe/vision_layers.hpp"
+#include "caffe/layers/dropout_layer.hpp"
+#include "caffe/layers/pooling_layer.hpp"
 
 #include "caffe/test/test_caffe_main.hpp"
 #include "caffe/test/test_gradient_check_util.hpp"
@@ -20,7 +21,7 @@ class MaxPoolingDropoutTest : public MultiDeviceTest<TypeParam> {
       : blob_bottom_(new Blob<Dtype>()),
         blob_top_(new Blob<Dtype>()) {}
   virtual void SetUp() {
-    Caffe::set_random_seed(1703);
+    Caffe::set_random_seed(1703, Caffe::GetDefaultDevice());
     blob_bottom_->Reshape(2, 3, 6, 5);
     // fill the values
     FillerParameter filler_param;
