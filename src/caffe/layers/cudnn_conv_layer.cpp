@@ -60,19 +60,17 @@ void CuDNNConvolutionLayer<Dtype>::LayerSetUp(
 
   // Create filter descriptor.
   const int_tp* kernel_shape_data = this->kernel_shape_.cpu_data();
-  const int_tp kernel_h = kernel_shape_data[0];
-  const int_tp kernel_w = kernel_shape_data[1];
-  cudnn::createFilterDesc<Dtype>(&filter_desc_,
+  cudnn::createFilterDesc<Dtype>(&filter_desc_, this->num_spatial_axes_,
       this->num_output_ / this->group_, this->channels_ / this->group_,
-      kernel_h, kernel_w);
+      kernel_shape_data);
 
   // Create tensor descriptor(s) for data and corresponding convolution(s).
   for (int_tp i = 0; i < bottom.size(); i++) {
     cudnnTensorDescriptor_t bottom_desc;
-    cudnn::createTensor4dDesc<Dtype>(&bottom_desc);
+    cudnn::createTensorNdDesc<Dtype>(&bottom_desc);
     bottom_descs_.push_back(bottom_desc);
     cudnnTensorDescriptor_t top_desc;
-    cudnn::createTensor4dDesc<Dtype>(&top_desc);
+    cudnn::createTensorNdDesc<Dtype>(&top_desc);
     top_descs_.push_back(top_desc);
     cudnnConvolutionDescriptor_t conv_desc;
     cudnn::createConvolutionDesc<Dtype>(&conv_desc);
@@ -81,7 +79,7 @@ void CuDNNConvolutionLayer<Dtype>::LayerSetUp(
 
   // Tensor descriptor for bias.
   if (this->bias_term_) {
-    cudnn::createTensor4dDesc<Dtype>(&bias_desc_);
+    cudnn::createTensorNdDesc<Dtype>(&bias_desc_);
   }
 
   handles_setup_ = true;
@@ -91,41 +89,67 @@ template <typename Dtype>
 void CuDNNConvolutionLayer<Dtype>::Reshape(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   ConvolutionLayer<Dtype>::Reshape(bottom, top);
-  CHECK_EQ(2, this->num_spatial_axes_)
-      << "CuDNNConvolution input must have 2 spatial axes "
-      << "(e.g., height and width). "
-      << "Use 'engine: CAFFE' for general ND convolution.";
+
   bottom_offset_ = this->bottom_dim_ / this->group_;
   top_offset_ = this->top_dim_ / this->group_;
-  const int_tp height = bottom[0]->shape(this->channel_axis_ + 1);
-  const int_tp width = bottom[0]->shape(this->channel_axis_ + 2);
-  const int_tp height_out = top[0]->shape(this->channel_axis_ + 1);
-  const int_tp width_out = top[0]->shape(this->channel_axis_ + 2);
   const int_tp* pad_data = this->pad_.cpu_data();
-  const int_tp pad_h = pad_data[0];
-  const int_tp pad_w = pad_data[1];
   const int_tp* stride_data = this->stride_.cpu_data();
-  const int_tp stride_h = stride_data[0];
-  const int_tp stride_w = stride_data[1];
 
   // Specify workspace limit for kernels directly until we have a
   // planning strategy and a rewrite of Caffe's GPU memory mangagement
   uint_tp workspace_limit_bytes = 8*1024*1024;
 
   for (int_tp i = 0; i < bottom.size(); i++) {
-    cudnn::setTensor4dDesc<Dtype>(&bottom_descs_[i],
-        this->num_,
-        this->channels_ / this->group_, height, width,
-        this->channels_ * height * width,
-        height * width, width, 1);
-    cudnn::setTensor4dDesc<Dtype>(&top_descs_[i],
-        this->num_,
-        this->num_output_ / this->group_, height_out, width_out,
-        this->num_output_ * this->out_spatial_dim_,
-        this->out_spatial_dim_, width_out, 1);
+
+    {
+      int_tp total_dims = bottom[i]->shape().size();
+      std::vector<int_tp> full_shape(total_dims);
+      std::vector<int_tp> full_stride(total_dims);
+
+      for (int_tp j = total_dims - 1; j >= 2; --j) {
+        full_shape[j] = bottom[i]->shape()[j];
+        if (j == total_dims - 1) {
+          full_stride[j] = 1;
+        } else {
+          full_stride[j] = full_stride[j + 1] * full_shape[j + 1];
+        }
+      }
+
+      full_shape[1] = this->channels_ / this->group_;
+      full_stride[1] = full_shape[2] * full_stride[2];
+      full_shape[0] = this->num_;
+      full_stride[0] = this->channels_ * full_stride[1];
+
+      cudnn::setTensorNdDesc<Dtype>(&bottom_descs_[i], total_dims,
+                                    &full_shape[0], &full_stride[0]);
+    }
+
+
+    {
+      int_tp total_dims = top[i]->shape().size();
+      std::vector<int_tp> full_shape(total_dims);
+      std::vector<int_tp> full_stride(total_dims);
+
+      for (int_tp j = total_dims - 1; j >= 2; --j) {
+        full_shape[j] = top[i]->shape()[j];
+        if (j == total_dims - 1) {
+          full_stride[j] = 1;
+        } else {
+          full_stride[j] = full_stride[j + 1] * full_shape[j + 1];
+        }
+      }
+
+      full_shape[1] = this->num_output_ / this->group_;
+      full_stride[1] = full_shape[2] * full_stride[2];
+      full_shape[0] = this->num_;
+      full_stride[0] = this->num_output_ * full_stride[1];
+
+      cudnn::setTensorNdDesc<Dtype>(&top_descs_[i], total_dims, &full_shape[0],
+                                    &full_stride[0]);
+    }
+
     cudnn::setConvolutionDesc<Dtype>(&conv_descs_[i], bottom_descs_[i],
-        filter_desc_, pad_h, pad_w,
-        stride_h, stride_w);
+        filter_desc_, this->num_spatial_axes_, pad_data, stride_data);
 
     // choose forward and backward algorithms + workspace(s)
     CUDNN_CHECK(cudnnGetConvolutionForwardAlgorithm(handle_[0],
@@ -224,10 +248,14 @@ void CuDNNConvolutionLayer<Dtype>::Reshape(
     }
   }
 
+  std::vector<int_tp> ones(this->num_spatial_axes_, 1);
+  const int_tp* ones_ptr = &ones[0];
+
   // Tensor descriptor for bias.
   if (this->bias_term_) {
-    cudnn::setTensor4dDesc<Dtype>(&bias_desc_,
-        1, this->num_output_ / this->group_, 1, 1);
+    cudnn::setTensorNdDesc<Dtype>(&bias_desc_,
+                                  this->num_spatial_axes_,
+        1, this->num_output_ / this->group_, ones_ptr);
   }
 }
 
