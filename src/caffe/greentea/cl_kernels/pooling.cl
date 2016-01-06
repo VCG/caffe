@@ -20,8 +20,8 @@ __kernel void TEMPLATE(max_pool_forward,Dtype)(
     int_tp wstart = pw * stride_w - pad_w;
     const int_tp hend = min(hstart + kernel_h, height);
     const int_tp wend = min(wstart + kernel_w, width);
-    hstart = max(hstart, 0L);
-    wstart = max(wstart, 0L);
+    hstart = max(hstart, (int_tp)0);
+    wstart = max(wstart, (int_tp)0);
     Dtype maxval = -FLT_MAX;
     int_tp maxidx = -1;
     __global const Dtype* bottom_slice = bottom_data
@@ -61,8 +61,8 @@ __kernel void TEMPLATE(ave_pool_forward,Dtype)(
       int_tp hend = min(hstart + kernel_h, height + pad_h);
       int_tp wend = min(wstart + kernel_w, width + pad_w);
       const int_tp pool_size = (hend - hstart) * (wend - wstart);
-      hstart = max(hstart, 0L);
-      wstart = max(wstart, 0L);
+      hstart = max(hstart, (int_tp)0);
+      wstart = max(wstart, (int_tp)0);
       hend = min(hend, height);
       wend = min(wend, width);
       Dtype aveval = 0;
@@ -238,7 +238,7 @@ __kernel void TEMPLATE(ave_pool_backward,Dtype)(const int_tp nthreads,
     const int_tp phend = min(h / stride_h + 1, pooled_height);
     const int_tp pwstart = (w < kernel_w) ? 0 : (w - kernel_w) / stride_w + 1;
     const int_tp pwend = min(w / stride_w + 1, pooled_width);
-    Dtype gradient = 0;
+    Dtype gradient = 0.0;
     __global const Dtype* const top_diff_slice = top_diff
         + (n * channels + c) * pooled_height * pooled_width;
     for (int_tp ph = phstart; ph < phend; ++ph) {
@@ -274,7 +274,7 @@ __kernel void TEMPLATE(sto_pool_backward,Dtype)(
     const int_tp phend = min(h / stride_h + 1, pooled_height);
     const int_tp pwstart = (w < kernel_w) ? 0 : (w - kernel_w) / stride_w + 1;
     const int_tp pwend = min(w / stride_w + 1, pooled_width);
-    Dtype gradient = 0;
+    Dtype gradient = 0.0;
     __global const Dtype* rand_idx_slice = rand_idx
         + (n * channels + c) * pooled_height * pooled_width;
     __global const Dtype* top_diff_slice = top_diff
@@ -282,7 +282,7 @@ __kernel void TEMPLATE(sto_pool_backward,Dtype)(
     for (int_tp ph = phstart; ph < phend; ++ph) {
       for (int_tp pw = pwstart; pw < pwend; ++pw) {
         gradient += top_diff_slice[ph * pooled_width + pw]
-            * (index == (int_tp) (rand_idx_slice[ph * pooled_width + pw]));
+            * (index == (int_tp) (rand_idx_slice[ph * pooled_width + pw])?0.0:1.0);
       }
     }
     bottom_diff[index] = gradient;

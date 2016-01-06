@@ -28,7 +28,8 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   num_spatial_axes_ = num_axes - first_spatial_axis;
   CHECK_GE(num_spatial_axes_, 0);
   vector<int_tp> bottom_dim_blob_shape(1, num_spatial_axes_ + 1);
-  vector<int_tp> spatial_dim_blob_shape(1, std::max(num_spatial_axes_, 1L));
+  vector<int_tp> spatial_dim_blob_shape(
+      1, std::max(num_spatial_axes_, (int_tp) 1));
   // Setup filter kernel dimensions (kernel_shape_).
   kernel_shape_.Reshape(spatial_dim_blob_shape);
   int_tp* kernel_shape_data = kernel_shape_.mutable_cpu_data();
@@ -101,37 +102,19 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     }
   }
 
-  // Setup kernel stride dimensions
-  kstride_.Reshape(spatial_dim_blob_shape);
-  int_tp* kstride_data = kstride_.mutable_cpu_data();
-  if (conv_param.has_kstride_h() || conv_param.has_kstride_w()) {
-    CHECK_EQ(num_spatial_axes_, 2)
-        << "kstride_h & kstride_w can only be used for 2D convolution.";
-    CHECK_EQ(0, conv_param.kstride_size())
-        << "Etiher kstride or kstride_h/w should be specified; not both.";
-    kstride_data[0] = conv_param.kstride_h();
-    kstride_data[1] = conv_param.kstride_w();
-  } else {
-    const int_tp num_kstride_dims = conv_param.kstride_size();
-    CHECK(num_kstride_dims == 0 || num_kstride_dims == 1 ||
-          num_kstride_dims == num_spatial_axes_)
-      << "kstride must be specified once, or once per spatial dimension "
-      << "(kstride specified " << num_kstride_dims << " times; "
-      << num_spatial_axes_ << " spatial dims);";
-    const int_tp kDefaultKstride = 1;
-    for (int_tp i = 0; i < num_spatial_axes_; ++i) {
-      kstride_data[i] = (num_kstride_dims == 0) ? kDefaultKstride :
-          conv_param.kstride((num_kstride_dims == 1) ? 0 : i);
-    }
-  }
-
-  // Different 2D and ND im2col/col2im kernels for strided kernels
-  use_skernel_ = false;
+  // Setup dilation dimensions (dilation_).
+  dilation_.Reshape(spatial_dim_blob_shape);
+  int_tp* dilation_data = dilation_.mutable_cpu_data();
+  const int_tp num_dilation_dims = conv_param.dilation_size();
+  CHECK(num_dilation_dims == 0 || num_dilation_dims == 1 ||
+        num_dilation_dims == num_spatial_axes_)
+      << "dilation must be specified once, or once per spatial dimension "
+      << "(dilation specified " << num_dilation_dims << " times; "
+      << num_spatial_axes_ << " spatial dims).";
+  const int kDefaultDilation = 1;
   for (int_tp i = 0; i < num_spatial_axes_; ++i) {
-    use_skernel_ |= (kstride_data[i] != 1);
-    if (use_skernel_) {
-      break;
-    }
+    dilation_data[i] = (num_dilation_dims == 0) ? kDefaultDilation :
+                       conv_param.dilation((num_dilation_dims == 1) ? 0 : i);
   }
 
   // Special case: im2col is the identity for 1x1 convolution with stride 1

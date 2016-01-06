@@ -13,18 +13,16 @@
 #define cl_amd_fp64
 #define DOUBLE_SUPPORT_AVAILABLE
 #define CLK_LOCAL_MEM_FENCE
+#define CLK_GLOBAL_MEM_FENCE
 #define Dtype float
 #define barrier(x)
 #define atomic_cmpxchg(x, y, z) x
-#endif
-
-// Types used for parameters, offset computations and so on
+#define signbit(x) x
 #define int_tp long
 #define uint_tp unsigned long
-
-// Definitions used to cast the types above as needed
 #define int_tpc long
 #define uint_tpc unsigned long
+#endif
 
 #define CONCAT(A,B) A##_##B
 #define TEMPLATE(name,type) CONCAT(name,type)

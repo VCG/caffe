@@ -33,7 +33,8 @@ void PoolingLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   CHECK_GE(num_spatial_axes_, 0);
 
   vector<int_tp> bottom_dim_blob_shape(1, num_spatial_axes_ + 1);
-  vector<int_tp> spatial_dim_blob_shape(1, std::max(num_spatial_axes_, 1L));
+  vector<int_tp> spatial_dim_blob_shape(
+      1, std::max(num_spatial_axes_, (int_tp) 1));
 
   kernel_shape_.Reshape(spatial_dim_blob_shape);
   int_tp* kernel_shape_data = kernel_shape_.mutable_cpu_data();
@@ -134,33 +135,26 @@ void PoolingLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   }
 
   // Setup kernel stride dimensions
-  kstride_.Reshape(spatial_dim_blob_shape);
-  int_tp* kstride_data = kstride_.mutable_cpu_data();
-  if (pool_param.has_kstride_h() || pool_param.has_kstride_w()) {
-    CHECK_EQ(num_spatial_axes_, 2)
-        << "kstride_h & kstride_w can only be used for 2D convolution.";
-    CHECK_EQ(0, pool_param.kstride_size())
-        << "Etiher kstride or kstirde_h/w should be specified; not both.";
-    kstride_data[0] = pool_param.kstride_h();
-    kstride_data[1] = pool_param.kstride_w();
-  } else {
-    const int_tp num_kstride_dims = pool_param.kstride_size();
-    CHECK(num_kstride_dims == 0 || num_kstride_dims == 1 ||
-          num_kstride_dims == num_spatial_axes_)
-      << "kstride must be specified once, or once per spatial dimension "
-      << "(kstride specified " << num_kstride_dims << " times; "
+  dilation_.Reshape(spatial_dim_blob_shape);
+  int_tp* dilation_data = dilation_.mutable_cpu_data();
+  const int_tp num_dilation_dims = pool_param.dilation_size();
+  CHECK(num_dilation_dims == 0 || num_dilation_dims == 1 ||
+      num_dilation_dims == num_spatial_axes_)
+      << "dilation must be specified once, or once per spatial dimension "
+      << "(dilation specified " << num_dilation_dims << " times; "
       << num_spatial_axes_ << " spatial dims);";
-    const int_tp kDefaultKstride = 1;
-    for (int_tp i = 0; i < num_spatial_axes_; ++i) {
-      kstride_data[i] = (num_kstride_dims == 0) ? kDefaultKstride :
-          pool_param.kstride((num_kstride_dims == 1) ? 0 : i);
-    }
+  const int_tp kDefaultdilation = 1;
+  for (int_tp i = 0; i < num_spatial_axes_; ++i) {
+    dilation_data[i] =
+        (num_dilation_dims == 0) ?
+            kDefaultdilation :
+            pool_param.dilation((num_dilation_dims == 1) ? 0 : i);
   }
 
   // Different 2D and ND im2col/col2im kernels for strided kernels
   use_skernel_ = false;
   for (int_tp i = 0; i < num_spatial_axes_; ++i) {
-    use_skernel_ |= (kstride_data[i] != 1);
+    use_skernel_ |= (dilation_data[i] != 1);
     if (use_skernel_) {
       break;
     }
@@ -181,7 +175,7 @@ void PoolingLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   int_tp* size_data = size_.mutable_cpu_data();
   int_tp* pooled_size_data = pooled_size_.mutable_cpu_data();
   int_tp* ext_kernel_shape_data = ext_kernel_shape_.mutable_cpu_data();
-  int_tp* kstride_data = kstride_.mutable_cpu_data();
+  int_tp* dilation_data = dilation_.mutable_cpu_data();
   int_tp* kernel_shape_data = kernel_shape_.mutable_cpu_data();
   int_tp* pad_data = pad_.mutable_cpu_data();
   int_tp* stride_data = stride_.mutable_cpu_data();
@@ -195,7 +189,8 @@ void PoolingLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   vector<int_tp> top_shape = bottom[0]->shape();
   for (int_tp i = 0; i < num_spatial_axes_; ++i) {
     size_data[i] = bottom[0]->shape(channel_axis_ + 1 + i);
-    ext_kernel_shape_data[i] = (kernel_shape_data[i] - 1) * kstride_data[i] + 1;
+    ext_kernel_shape_data[i] = (kernel_shape_data[i] - 1) * dilation_data[i]
+        + 1;
     pooled_size_data[i] = static_cast<int_tp>(ceil(
         static_cast<float>(size_data[i] + 2 * pad_data[i]
             - ext_kernel_shape_data[i]) / stride_data[i])) + 1;
@@ -261,7 +256,7 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       caffe_set(top_count, Dtype(-1), top_mask);
     } else {
       mask = max_idx_.mutable_cpu_data();
-      caffe_set(top_count, -1L, mask);
+      caffe_set(top_count, (int_tp)-1, mask);
     }
     caffe_set(top_count, Dtype(-FLT_MAX), top_data);
     // The main loop
@@ -273,8 +268,8 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
             int_tp wstart = pw * stride_w_ - pad_w_;
             int_tp hend = min(hstart + kernel_h_, height_);
             int_tp wend = min(wstart + kernel_w_, width_);
-            hstart = max(hstart, 0L);
-            wstart = max(wstart, 0L);
+            hstart = max(hstart, (int_tp)0);
+            wstart = max(wstart, (int_tp)0);
             const int_tp pool_index = ph * pooled_width_ + pw;
             for (int_tp h = hstart; h < hend; ++h) {
               for (int_tp w = wstart; w < wend; ++w) {
@@ -316,8 +311,8 @@ void PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
             int_tp hend = min(hstart + kernel_h_, height_ + pad_h_);
             int_tp wend = min(wstart + kernel_w_, width_ + pad_w_);
             int_tp pool_size = (hend - hstart) * (wend - wstart);
-            hstart = max(hstart, 0L);
-            wstart = max(wstart, 0L);
+            hstart = max(hstart, (int_tp)0);
+            wstart = max(wstart, (int_tp)0);
             hend = min(hend, height_);
             wend = min(wend, width_);
             for (int_tp h = hstart; h < hend; ++h) {
@@ -408,8 +403,8 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
             int_tp hend = min(hstart + kernel_h_, height_ + pad_h_);
             int_tp wend = min(wstart + kernel_w_, width_ + pad_w_);
             int_tp pool_size = (hend - hstart) * (wend - wstart);
-            hstart = max(hstart, 0L);
-            wstart = max(wstart, 0L);
+            hstart = max(hstart, (int_tp)0);
+            wstart = max(wstart, (int_tp)0);
             hend = min(hend, height_);
             wend = min(wend, width_);
             for (int_tp h = hstart; h < hend; ++h) {

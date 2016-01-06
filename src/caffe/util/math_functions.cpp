@@ -70,10 +70,12 @@ void caffe_set(const int_tp N, const Dtype alpha, Dtype* Y) {
   }
 }
 
-template void caffe_set<int>(const int_tp N, const int alpha, int* Y);
-template void caffe_set<uint_tp>(const int_tp N, const uint_tp alpha,
-                                 uint_tp* Y);
-template void caffe_set<int_tp>(const int_tp N, const int_tp alpha, int_tp* Y);
+template void caffe_set<int32_t>(const int_tp N, const int alpha, int* Y);
+template void caffe_set<uint32_t>(const int_tp N, const uint32_t alpha,
+                                  uint32_t* Y);
+template void caffe_set<int64_t>(const int_tp N, int64_t alpha, int64_t* Y);
+template void caffe_set<uint64_t>(const int_tp N, const uint64_t alpha,
+                                  uint64_t* Y);
 template void caffe_set<float>(const int_tp N, const float alpha, float* Y);
 template void caffe_set<double>(const int_tp N, const double alpha, double* Y);
 
