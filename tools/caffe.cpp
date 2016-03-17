@@ -4,6 +4,7 @@
 namespace bp = boost::python;
 #endif
 
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include <cstring>
@@ -198,7 +199,6 @@ int train() {
       s << (i ? ", " : "") << gpus[i];
     }
     LOG(INFO) << "Using GPUs " << s.str();
-
     solver_param.set_device_id(gpus[0]);
     // Initialize the first device
     Caffe::SetDevice(gpus[0]);
@@ -229,7 +229,7 @@ int train() {
     for (int_tp i = 0; i < gpus.size(); ++i) {
       devices.push_back(Caffe::Get().GetDevice(i, true));
     }
-    sync.run(devices);
+    sync.Run(devices);
   } else {
     LOG(INFO) << "Starting Optimization";
     solver->Solve();
@@ -264,14 +264,13 @@ int test() {
   caffe_net.CopyTrainedLayersFrom(FLAGS_weights);
   LOG(INFO) << "Running for " << FLAGS_iterations << " iterations.";
 
-  vector<Blob<float>* > bottom_vec;
   vector<int> test_score_output_id;
   vector<float> test_score;
   float loss = 0;
   for (int_tp i = 0; i < FLAGS_iterations; ++i) {
     float iter_loss;
     const vector<Blob<float>*>& result =
-        caffe_net.Forward(bottom_vec, &iter_loss);
+        caffe_net.Forward(&iter_loss);
     loss += iter_loss;
     int_tp idx = 0;
     for (int_tp j = 0; j < result.size(); ++j) {
@@ -338,7 +337,7 @@ int time() {
   // Note that for the speed benchmark, we will assume that the network does
   // not take any input blobs.
   float initial_loss;
-  caffe_net.Forward(vector<Blob<float>*>(), &initial_loss);
+  caffe_net.Forward(&initial_loss);
   LOG(INFO) << "Initial loss: " << initial_loss;
   LOG(INFO) << "Performing Backward";
   caffe_net.Backward();
@@ -408,6 +407,8 @@ RegisterBrewFunction(time);
 int main(int argc, char** argv) {
   // Print output to stderr (while still logging).
   FLAGS_alsologtostderr = 1;
+  // Set version
+  gflags::SetVersionString(AS_STRING(CAFFE_VERSION));
   // Usage message.
   gflags::SetUsageMessage("command line brew\n"
       "usage: caffe <command> <args>\n\n"
