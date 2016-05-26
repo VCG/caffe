@@ -275,13 +275,13 @@ void MalisLossLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   LossLayer<Dtype>::LayerSetUp(bottom, top);
 
   // Expected inputs:
-  // Required (bottom 0 to 2):
+  // Required (bottom 0 to 3):
   // Bottom 0: Predicted affinity, shaped     (batch size, #edges, (Z), (Y), X)
-  // Bottom 1: Ground truth affinity, shaped  (batch size, #edges, (Z), (Y), X)
-  // Bottom 2: Segmented ground truth, shaped (batch size, 1,      (Z), (Y), X)
+  // Bottom 2: Segmentation truth for negative phase, shaped (batch size, 1, (Z), (Y), X)
+  // Bottom 3: Segmentation truth for positive phase, shaped (batch size, 1, (Z), (Y), X)
 
-  // Optional (bottom 3):
-  // Bottom 3: Edge connectivity, size #edges * 3, shaped (Z,Y,X);(Z,Y,X);...
+  // Optional (bottom 4):
+  // Bottom 4: Edge connectivity, size #edges * 3, shaped (Z,Y,X);(Z,Y,X);...
   // (this means pairs of 3 per edge)
 }
 
@@ -339,11 +339,11 @@ void MalisLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     // Custom edges
     for (int_tp i = 0; i < nedges_; ++i) {
       // Z edge direction
-      nhood_data_.push_back(bottom[3]->cpu_data()[i * 3 + 0]);
+      nhood_data_.push_back(bottom[4]->cpu_data()[i * 3 + 0]);
       // Y edge direction
-      nhood_data_.push_back(bottom[3]->cpu_data()[i * 3 + 1]);
+      nhood_data_.push_back(bottom[4]->cpu_data()[i * 3 + 1]);
       // X edge direction
-      nhood_data_.push_back(bottom[3]->cpu_data()[i * 3 + 2]);
+      nhood_data_.push_back(bottom[4]->cpu_data()[i * 3 + 2]);
     }
   } else {
     // Dimension primary edges (+Z, +Y, +X) only:
@@ -401,7 +401,7 @@ void MalisLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 
     Malis(&affinity_data_pos[batch_offset * batch], conn_num_dims_,
           &conn_dims_[0], &nhood_data_[0], &nhood_dims_[0],
-          bottom[2]->cpu_data() + batch_offset * batch, true,
+          bottom[3]->cpu_data() + batch_offset * batch, true,
           dloss_pos_.mutable_cpu_data() + batch_offset * batch, &loss_out,
           &classerr_out, &rand_index_out);
 

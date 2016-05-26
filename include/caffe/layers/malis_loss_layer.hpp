@@ -23,8 +23,8 @@ class MalisLossLayer : public LossLayer<Dtype> {
 
   virtual inline const char* type() const { return "MalisLoss"; }
   virtual inline int_tp ExactNumBottomBlobs() const { return -1; }
-  virtual inline int_tp MinBottomBlobs() const { return 3; }
-  virtual inline int_tp MaxBottomBlobs() const { return 4; }
+  virtual inline int_tp MinBottomBlobs() const { return 4; }
+  virtual inline int_tp MaxBottomBlobs() const { return 5; }
   virtual inline int_tp ExactNumTopBlobs() const { return -1; }
   virtual inline int_tp MinTopBlobs() const { return 1; }
   virtual inline int_tp MaxTopBlobs() const { return 2; }
